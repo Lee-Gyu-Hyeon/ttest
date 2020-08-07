@@ -1,0 +1,124 @@
+import UIKit
+import AVFoundation
+import MobileCoreServices
+import SnapKit
+import AWSCognito
+
+class ViewController: UIViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
+    
+    
+    var imagePickers:UIImagePickerController?
+    
+    let videoPlayerView = UIView()
+    let cameraRecordView = UIView()
+    var player: AVPlayer?
+    var url: URL!
+    var s3Url: URL!
+    
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        
+        
+        addImagePickerToContainerView()
+        
+        videoPlayerView.backgroundColor = UIColor.black
+        videoPlayerView.translatesAutoresizingMaskIntoConstraints = false
+        let topConstraint = NSLayoutConstraint(item: videoPlayerView, attribute: .top, relatedBy: .equal, toItem: view, attribute: .top, multiplier: 1, constant: 0)
+        let bottomConstraint = NSLayoutConstraint(item: videoPlayerView, attribute: .bottom, relatedBy: .equal, toItem: view, attribute: .bottom, multiplier: 1, constant: 0)
+        let leadingConstraint = NSLayoutConstraint(item: videoPlayerView, attribute: .leading, relatedBy: .equal, toItem: view, attribute: .leading, multiplier: 1, constant: 0)
+        let trailingConstraint = NSLayoutConstraint(item: videoPlayerView, attribute: .trailing, relatedBy: .equal, toItem: view, attribute: .trailing, multiplier: 1, constant: 0)
+        view.addSubview(videoPlayerView)
+        view.addConstraints([topConstraint, bottomConstraint, leadingConstraint, trailingConstraint])
+        
+        
+        cameraRecordView.backgroundColor = UIColor.green
+        cameraRecordView.isUserInteractionEnabled = true
+        cameraRecordView.translatesAutoresizingMaskIntoConstraints = false
+        self.view.addSubview(cameraRecordView)
+        
+        //
+        cameraRecordView.snp.makeConstraints { (make) in
+            make.trailing.equalTo(10)
+            make.bottom.equalToSuperview()
+            make.width.equalToSuperview().dividedBy(4)
+            make.height.equalToSuperview().dividedBy(4)
+            make.bottom.equalTo(self.view.safeAreaLayoutGuide).offset(-60)
+        }
+    }
+    
+    
+    
+    
+    
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        setupVideoPlayer()
+    }
+    
+    
+    
+    
+    override var shouldAutorotate: Bool {
+        return true
+    }
+    
+    override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
+        return [.landscapeRight]
+    }
+    
+    
+    
+    
+    
+    func setupVideoPlayer() {
+        let url = URL(string: "http://download.appboomclap.co.kr/content/content_301.mp4")
+        print("비디오 주소: ", url!)
+        
+        player = AVPlayer(url: url!)
+        let playerLayer = AVPlayerLayer(player: player)
+        playerLayer.frame = videoPlayerView.bounds
+        
+        playerLayer.videoGravity = .resizeAspect
+        
+        videoPlayerView.layer.addSublayer(playerLayer)
+        player?.play()
+    }
+    
+    
+    
+    
+    func addImagePickerToContainerView() {
+        imagePickers = UIImagePickerController()
+        
+        if UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.front) {
+            imagePickers?.sourceType = UIImagePickerController.SourceType.camera
+            addChild(imagePickers!)
+            
+            self.cameraRecordView.addSubview((imagePickers?.view)!)
+            imagePickers?.delegate = self
+            imagePickers?.view.frame = cameraRecordView.bounds
+            imagePickers?.allowsEditing = true
+            //imagePickers?.videoMaximumDuration = 5
+            imagePickers?.showsCameraControls = false
+            imagePickers?.cameraViewTransform = CGAffineTransform(scaleX: 5, y: 5)
+            //imagePickers?.additionalSafeAreaInsets = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+        }
+        
+        if UIImagePickerController.isCameraDeviceAvailable(UIImagePickerController.CameraDevice.rear) {
+            imagePickers?.mediaTypes = ["public.movie"]
+            imagePickers?.cameraCaptureMode = .video
+            imagePickers?.view.frame = cameraRecordView.bounds
+            //imagePickers?.videoMaximumDuration = 5
+            imagePickers?.cameraDevice = .front
+            //imagePickers?.additionalSafeAreaInsets = UIEdgeInsets(top: 20, left: 20, bottom: 20, right: 20)
+            
+            //녹화시작 딜레이
+            DispatchQueue.main.asyncAfter(deadline: .now()+2, execute: {
+                self.imagePickers?.startVideoCapture()
+                print("녹화 시작")
+            })
+        }
+    }
+}
